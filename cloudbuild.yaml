@@ -1,0 +1,58 @@
+steps:
+  # Step 1: Install dependencies
+  - name: "node:18-alpine"
+    entrypoint: "npm"
+    args: ["install"]
+
+  # Step 2: Run tests
+  - name: "node:18-alpine"
+    entrypoint: "npm"
+    args: ["test"]
+
+  # Step 3: Build the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "_REGION-docker.pkg.dev/$PROJECT_ID/product-api/product-api:latest"
+      - "-t"
+      - "_REGION-docker.pkg.dev/$PROJECT_ID/product-api/product-api:$COMMIT_SHA"
+      - "."
+
+  # Step 4: Push image tagged as latest
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "_REGION-docker.pkg.dev/$PROJECT_ID/product-api/product-api:latest"
+
+  # Step 5: Push image tagged with commit SHA (for traceability)
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "_REGION-docker.pkg.dev/$PROJECT_ID/product-api/product-api:$COMMIT_SHA"
+
+  # Step 6: Deploy to GKE
+  - name: "gcr.io/cloud-builders/kubectl"
+    args:
+      - "apply"
+      - "-f"
+      - "k8s/deployment.yaml"
+    env:
+      - "CLOUDSDK_COMPUTE_REGION=_REGION"
+      - "CLOUDSDK_CONTAINER_CLUSTER=_CLUSTER"
+
+  - name: "gcr.io/cloud-builders/kubectl"
+    args:
+      - "apply"
+      - "-f"
+      - "k8s/service.yaml"
+    env:
+      - "CLOUDSDK_COMPUTE_REGION=_REGION"
+      - "CLOUDSDK_CONTAINER_CLUSTER=_CLUSTER"
+
+substitutions:
+  _REGION: us-central1
+  _CLUSTER: capstone-project
+
+options:
+  logging: CLOUD_LOGGING_ONLY
