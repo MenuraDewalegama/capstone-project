@@ -9,29 +9,36 @@ steps:
     entrypoint: "npm"
     args: ["test"]
 
-  # Step 3: Build the Docker image
+  # Step 3: Log in to Docker Hub
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - "echo $_DOCKERHUB_TOKEN | docker login --username $_DOCKERHUB_USERNAME --password-stdin"
+
+  # Step 4: Build the Docker image
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "build"
       - "-t"
-      - "$_REGION-docker.pkg.dev/$PROJECT_ID/product-api/product-api:latest"
+      - "$_DOCKERHUB_USERNAME/product-api:latest"
       - "-t"
-      - "$_REGION-docker.pkg.dev/$PROJECT_ID/product-api/product-api:$COMMIT_SHA"
+      - "$_DOCKERHUB_USERNAME/product-api:$COMMIT_SHA"
       - "."
 
-  # Step 4: Push image tagged as latest
+  # Step 5: Push image tagged as latest
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "push"
-      - "$_REGION-docker.pkg.dev/$PROJECT_ID/product-api/product-api:latest"
+      - "$_DOCKERHUB_USERNAME/product-api:latest"
 
-  # Step 5: Push image tagged with commit SHA (for traceability)
+  # Step 6: Push image tagged with commit SHA
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "push"
-      - "$_REGION-docker.pkg.dev/$PROJECT_ID/product-api/product-api:$COMMIT_SHA"
+      - "$_DOCKERHUB_USERNAME/product-api:$COMMIT_SHA"
 
-  # Step 6: Deploy to GKE
+  # Step 7: Deploy to GKE
   - name: "gcr.io/cloud-builders/kubectl"
     args:
       - "apply"
@@ -51,6 +58,8 @@ steps:
       - "CLOUDSDK_CONTAINER_CLUSTER=$_CLUSTER"
 
 substitutions:
+  _DOCKERHUB_USERNAME: ""
+  _DOCKERHUB_TOKEN: ""
   _REGION: us-central1
   _CLUSTER: capstone-project
 
