@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: product-api-pdb
+  labels:
+    app: product-api
+    app.kubernetes.io/component: resilience
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: product-api
